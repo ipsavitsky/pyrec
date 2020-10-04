@@ -3,10 +3,18 @@ import wave
 import pydub
 import os
 import serial
+import serial.tools.list_ports
 from ftplib import FTP
 from datetime import datetime
 import configparser
 
+
+def findPort():
+    ports = serial.tools.list_ports.comports()
+    for port in ports:
+        if "STM32 Virtual ComPort" in str(port):
+            resport = str(port).split(' ')[0]
+    return resport
 
 def record(conf):
 
@@ -18,7 +26,9 @@ def record(conf):
                     input=True,
                     frames_per_buffer=int(conf['AUDIO']['CHUNK']))
 
-    sercom = serial.Serial('/dev/ttyACM0')
+    serport = findPort()
+    print('found STM32 on '+serport)
+    sercom = serial.Serial(serport)
 
     print("waiting for recording")
     sercom.write(str.encode(conf['SERIAL']['CHECKBYTE']))
@@ -86,8 +96,8 @@ if __name__ == '__main__':
     config.read("conf.ini")
     print('#' * 80)
     employee_id = input("Enter your id: ")
-    print("Please speak word(s) into the microphone")
-    print('Press Ctrl+C to stop the recording')
+    # print("Please speak word(s) into the microphone")
+    # print('Press Ctrl+C to stop the recording')
     # employee_id = 1111
     filename = str(employee_id) + "-" + \
         datetime.now().strftime("%H%M%S-%Y%m%d") + ".wav"
