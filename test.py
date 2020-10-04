@@ -9,10 +9,10 @@ from datetime import datetime
 import configparser
 
 
-def findPort():
+def findPort(conf):
     ports = serial.tools.list_ports.comports()
     for port in ports:
-        if "STM32 Virtual ComPort" in str(port):
+        if conf['SERIAL']['DEVICE'] in str(port):
             resport = str(port).split(' ')[0]
     return resport
 
@@ -26,8 +26,8 @@ def record(conf):
                     input=True,
                     frames_per_buffer=int(conf['AUDIO']['CHUNK']))
 
-    serport = findPort()
-    print('found STM32 on '+serport)
+    serport = findPort(conf)
+    print('found '+ conf['SERIAL']['DEVICE'] +' on ' + serport)
     sercom = serial.Serial(serport)
 
     print("waiting for recording")
