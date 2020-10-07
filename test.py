@@ -20,28 +20,42 @@ def record(conf):
 
     p = pyaudio.PyAudio()
 
+    
+    serport = findPort(conf)
+    print('found '+ conf['SERIAL']['DEVICE'] +' on ' + serport)
+    sercom = serial.Serial(serport, 115200)
+
+    print("waiting for recording")
+    # sercom.write(str.encode(conf['SERIAL']['CHECKBYTE']))
+    while True:
+        a = sercom.read(2)
+        if a == b'10':
+            print('channel 1 shorted!')
+            break
+        elif a == b'01':
+            print('channel 2 shorted!')
+            break
+        pass
+        # sercom.write(str.encode(conf['SERIAL']['CHECKBYTE']))
+    print("Starting recording")
     stream = p.open(format=pyaudio.paInt16,
                     channels=int(conf['AUDIO']['CHANNELS']),
                     rate=int(conf['AUDIO']['RATE']),
                     input=True,
                     frames_per_buffer=int(conf['AUDIO']['CHUNK']))
 
-    serport = findPort(conf)
-    print('found '+ conf['SERIAL']['DEVICE'] +' on ' + serport)
-    sercom = serial.Serial(serport)
-
-    print("waiting for recording")
-    sercom.write(str.encode(conf['SERIAL']['CHECKBYTE']))
-    while sercom.read() != 1:
-        sercom.write(str.encode(conf['SERIAL']['CHECKBYTE']))
-    print("Starting recording")
     frames = []
 
     try:
-        while sercom.read() != 0:
+        while 1:
             data = stream.read(int(conf['AUDIO']['CHUNK']))
             frames.append(data)
-            sercom.write(str.encode(conf['SERIAL']['CHECKBYTE']))
+            if sercom.inWaiting() != 0:
+                # print('in first if')
+                if sercom.read(2) == b'11':
+                    # print('i want to break free')
+                    break
+            # sercom.write(str.encode(conf['SERIAL']['CHECKBYTE']))
     except KeyboardInterrupt:
         print("Done recording")
     except Exception as e:
