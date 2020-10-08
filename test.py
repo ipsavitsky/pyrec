@@ -36,7 +36,6 @@ def record(conf):
             print('channel 2 shorted!')
             break
         pass
-        # sercom.write(str.encode(conf['SERIAL']['CHECKBYTE']))
     print("Starting recording")
     stream = p.open(format=pyaudio.paInt16,
                     channels=int(conf['AUDIO']['CHANNELS']),
@@ -44,17 +43,37 @@ def record(conf):
                     input=True,
                     frames_per_buffer=int(conf['AUDIO']['CHUNK']))
 
-    frames = []
-
+    frames1 = []
+    frames2 = []
+    t1 = datetime(1, 1, 1, 0, 0, 0, 0)
+    t2 = datetime(1, 1, 1, 0, 0, 0, 0)
     try:
-        while 1:
+        while True:
             data = stream.read(int(conf['AUDIO']['CHUNK']))
-            frames.append(data)
+            if a == b'10':
+                if t1.date().year == 1:
+                    print('starting recording on channel 1')
+                    t1 = datetime.now()
+                frames1.append(data)
+            elif a == b'01':
+                if t2.date().year == 1:
+                    print('starting recording on channel 2')
+                    t2 = datetime.now()
+                frames2.append(data)
+            elif a == b'00':
+                if t1.date().year == 1:
+                    print('starting recording on channel 1')
+                    t1 = datetime.now()
+                if t2.date().year == 1:
+                    print('starting recording on channel 2')
+                    t2 = datetime.now()
+                frames1.append(data)
+                frames2.append(data)
+            else:
+                break
+            # frames.append(data)
             if sercom.inWaiting() != 0:
-                # print('in first if')
-                if sercom.read(2) == b'11':
-                    # print('i want to break free')
-                    break
+                a = sercom.read(2)
             # sercom.write(str.encode(conf['SERIAL']['CHECKBYTE']))
     except KeyboardInterrupt:
         print("Done recording")
@@ -76,17 +95,33 @@ def record(conf):
     stream.stop_stream()
     stream.close()
     p.terminate()
-    return sample_width, frames
+    frames_list = []
+    time_list = []
+    if len(frames1) != 0:
+        time_list.append(t1)
+        frames_list.append(frames1)
+    if len(frames2) != 0:
+        time_list.append(t2)
+        frames_list.append(frames2)
+    return sample_width, frames_list, time_list
 
 
-def record_to_file(conf, file_path):
-    wf = wave.open(file_path, 'wb')
-    wf.setnchannels(int(conf['AUDIO']['CHANNELS']))
-    sample_width, frames = record(conf)
-    wf.setsampwidth(sample_width)
-    wf.setframerate(int(conf['AUDIO']['RATE']))
-    wf.writeframes(b''.join(frames))
-    wf.close()
+def record_to_file(employee_id, conf):
+    sample_width, frames_list, time_list = record(conf)
+    i = 0
+    file_list = []
+    for frames in frames_list:
+        time = time_list[i].strftime("%H%M%S-%Y%m%d")
+        filename = f"{employee_id}-{time}.wav"
+        file_list.append(filename)
+        wf = wave.open(filename, 'wb')
+        wf.setnchannels(int(conf['AUDIO']['CHANNELS']))
+        wf.setsampwidth(sample_width)
+        wf.setframerate(int(conf['AUDIO']['RATE']))
+        wf.writeframes(b''.join(frames))
+        wf.close()
+        i += 1
+    return file_list
 
 
 def wav_2_mp3_convert(filename):
@@ -113,13 +148,13 @@ if __name__ == '__main__':
     # print("Please speak word(s) into the microphone")
     # print('Press Ctrl+C to stop the recording')
     # employee_id = 1111
-    filename = str(employee_id) + "-" + \
-        datetime.now().strftime("%H%M%S-%Y%m%d") + ".wav"
-    record_to_file(config, filename)
-    print("Result written to " + filename)
-    wav_2_mp3_convert(filename)
-    filename = filename.split(".")[0] + ".mp3"
-    print("Converted to " + filename)
-    upload_ftp(filename, config)
-    print('file sent to ' + config['FTP']['HOST'] + config['FTP']['DIRECTORY'])
+    
+    filename_list = record_to_file(employee_id, config)
+    for filename in filename_list:
+        print("Result written to " + filename)
+        wav_2_mp3_convert(filename)
+        filename = filename.split(".")[0] + ".mp3"
+        print("Converted to " + filename)
+        upload_ftp(filename, config)
+        print('file sent to ' + config['FTP']['HOST'] + config['FTP']['DIRECTORY'])
     print('#' * 80)
