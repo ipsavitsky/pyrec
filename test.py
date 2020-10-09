@@ -111,7 +111,7 @@ def record_to_file(employee_id, conf):
     i = 0
     file_list = []
     for frames in frames_list:
-        time = time_list[i].strftime("%H%M%S-%Y%m%d")
+        time = time_list[i].strftime("%Y%m%d-%H%M%S")
         filename = f"{employee_id}-{time}.wav"
         file_list.append(filename)
         wf = wave.open(filename, 'wb')
