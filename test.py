@@ -45,36 +45,57 @@ def record(conf):
 
     frames1 = []
     frames2 = []
-    t1 = datetime(1, 1, 1, 0, 0, 0, 0)
-    t2 = datetime(1, 1, 1, 0, 0, 0, 0)
+    main_counter = 0
+    ch1 = 0
+    ch2 = 0
+    rec1 = False
+    rec2 = False
+    frames_list = []
+    dates_list = []
     try:
         while True:
             data = stream.read(int(conf['AUDIO']['CHUNK']))
             if a == b'10':
-                if t1.date().year == 1:
-                    print('starting recording on channel 1')
-                    t1 = datetime.now()
-                frames1.append(data)
+                if rec1 == False:
+                    main_counter += 1
+                    ch1 = main_counter
+                    print(f'starting recording on channel 1; file {ch1}')
+                    frames_list.append([])
+                    dates_list.append(datetime.now())
+                    rec1 = True
+                frames_list[ch1 - 1].append(data)
+                rec2 = False
             elif a == b'01':
-                if t2.date().year == 1:
-                    print('starting recording on channel 2')
-                    t2 = datetime.now()
-                frames2.append(data)
+                if rec2 == False:
+                    main_counter += 1
+                    ch2 = main_counter
+                    print(f'starting recording on channel 2; file {ch2}')
+                    frames_list.append([])
+                    dates_list.append(datetime.now())
+                    rec2 = True
+                frames_list[ch2 - 1].append(data)
+                rec1 = False
             elif a == b'00':
-                if t1.date().year == 1:
-                    print('starting recording on channel 1')
-                    t1 = datetime.now()
-                if t2.date().year == 1:
-                    print('starting recording on channel 2')
-                    t2 = datetime.now()
-                frames1.append(data)
-                frames2.append(data)
+                if rec1 == False:
+                    main_counter += 1
+                    ch1 = main_counter
+                    print(f'starting recording on channel 1; file {ch1}')
+                    frames_list.append([])
+                    dates_list.append(datetime.now())
+                    rec1 = True
+                if rec2 == False:
+                    main_counter += 1
+                    ch2 = main_counter
+                    print(f'starting recording on channel 2; file {ch2}')
+                    frames_list.append([])
+                    dates_list.append(datetime.now())
+                    rec2 = True
+                frames_list[ch1 - 1].append(data)
+                frames_list[ch2 - 1].append(data)
             else:
                 break
-            # frames.append(data)
             if sercom.inWaiting() != 0:
                 a = sercom.read(2)
-            # sercom.write(str.encode(conf['SERIAL']['CHECKBYTE']))
     except KeyboardInterrupt:
         print("Done recording")
     except Exception as e:
@@ -95,15 +116,7 @@ def record(conf):
     stream.stop_stream()
     stream.close()
     p.terminate()
-    frames_list = []
-    time_list = []
-    if len(frames1) != 0:
-        time_list.append(t1)
-        frames_list.append(frames1)
-    if len(frames2) != 0:
-        time_list.append(t2)
-        frames_list.append(frames2)
-    return sample_width, frames_list, time_list
+    return sample_width, frames_list, dates_list
 
 
 def record_to_file(employee_id, conf):
@@ -155,6 +168,6 @@ if __name__ == '__main__':
         wav_2_mp3_convert(filename)
         filename = filename.split(".")[0] + ".mp3"
         print("Converted to " + filename)
-        upload_ftp(filename, config)
+        # upload_ftp(filename, config)
         print('file sent to ' + config['FTP']['HOST'] + config['FTP']['DIRECTORY'])
     print('#' * 80)
