@@ -16,13 +16,13 @@ def findPort(conf):
             resport = str(port).split(' ')[0]
     return resport
 
+
 def record(conf):
 
     p = pyaudio.PyAudio()
 
-    
     serport = findPort(conf)
-    print('found '+ conf['SERIAL']['DEVICE'] +' on ' + serport)
+    print('found ' + conf['SERIAL']['DEVICE'] + ' on ' + serport)
     sercom = serial.Serial(serport, 115200)
 
     print("waiting for recording")
@@ -42,9 +42,6 @@ def record(conf):
                     rate=int(conf['AUDIO']['RATE']),
                     input=True,
                     frames_per_buffer=int(conf['AUDIO']['CHUNK']))
-
-    frames1 = []
-    frames2 = []
     main_counter = 0
     ch1 = 0
     ch2 = 0
@@ -161,13 +158,14 @@ if __name__ == '__main__':
     # print("Please speak word(s) into the microphone")
     # print('Press Ctrl+C to stop the recording')
     # employee_id = 1111
-    
+
     filename_list = record_to_file(employee_id, config)
     for filename in filename_list:
         print("Result written to " + filename)
         wav_2_mp3_convert(filename)
         filename = filename.split(".")[0] + ".mp3"
         print("Converted to " + filename)
-        # upload_ftp(filename, config)
-        print('file sent to ' + config['FTP']['HOST'] + config['FTP']['DIRECTORY'])
+        upload_ftp(filename, config)
+        print('file sent to ' + config['FTP']
+              ['HOST'] + config['FTP']['DIRECTORY'])
     print('#' * 80)
