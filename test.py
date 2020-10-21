@@ -36,7 +36,7 @@ def record(conf):
             print('channel 2 shorted!')
             break
         pass
-    print("Starting recording")
+    print("Starting the recording")
     stream = p.open(format=pyaudio.paInt16,
                     channels=int(conf['AUDIO']['CHANNELS']),
                     rate=int(conf['AUDIO']['RATE']),
@@ -49,6 +49,7 @@ def record(conf):
     rec2 = False
     frames_list = []
     dates_list = []
+    channel_list = []
     try:
         while True:
             data = stream.read(int(conf['AUDIO']['CHUNK']))
@@ -59,6 +60,7 @@ def record(conf):
                     print(f'starting recording on channel 1; file {ch1}')
                     frames_list.append([])
                     dates_list.append(datetime.now())
+                    channel_list.append(1)
                     rec1 = True
                 frames_list[ch1 - 1].append(data)
                 rec2 = False
@@ -69,6 +71,7 @@ def record(conf):
                     print(f'starting recording on channel 2; file {ch2}')
                     frames_list.append([])
                     dates_list.append(datetime.now())
+                    channel_list.append(2)
                     rec2 = True
                 frames_list[ch2 - 1].append(data)
                 rec1 = False
@@ -79,6 +82,7 @@ def record(conf):
                     print(f'starting recording on channel 1; file {ch1}')
                     frames_list.append([])
                     dates_list.append(datetime.now())
+                    channel_list.append(1)
                     rec1 = True
                 if rec2 == False:
                     main_counter += 1
@@ -86,6 +90,7 @@ def record(conf):
                     print(f'starting recording on channel 2; file {ch2}')
                     frames_list.append([])
                     dates_list.append(datetime.now())
+                    channel_list.append(2)
                     rec2 = True
                 frames_list[ch1 - 1].append(data)
                 frames_list[ch2 - 1].append(data)
@@ -113,16 +118,20 @@ def record(conf):
     stream.stop_stream()
     stream.close()
     p.terminate()
-    return sample_width, frames_list, dates_list
+    return sample_width, frames_list, dates_list, channel_list
 
 
 def record_to_file(employee_id, conf):
-    sample_width, frames_list, time_list = record(conf)
+    sample_width, frames_list, time_list, channel_list = record(conf)
     i = 0
     file_list = []
     for frames in frames_list:
         time = time_list[i].strftime("%Y%m%d-%H%M%S")
-        filename = f"{employee_id}-{time}.wav"
+        filename = f"{employee_id}-{channel_list[i]}-{time}.wav"
+        #if a == b'10':
+        #    filename = f"{employee_id}-1-{time}.wav"
+ 	#elif a == b'01':
+        #    filename = f"{employee_id}-2-{time}.wav"
         file_list.append(filename)
         wf = wave.open(filename, 'wb')
         wf.setnchannels(int(conf['AUDIO']['CHANNELS']))
@@ -135,8 +144,12 @@ def record_to_file(employee_id, conf):
 
 
 def wav_2_mp3_convert(filename):
-    sound = pydub.AudioSegment.from_wav(filename)
-    sound.export(filename.split(".")[0] + ".mp3", format="mp3")
+    # sound = pydub.AudioSegment.from_wav(filename)
+    # sound.export(filename.split(".")[0] + ".mp3", format="mp3")
+    #здесь не самое элегантное решение, но я это починю в скором времени
+
+    new_filename = filename.split(".")[0] + ".mp3"
+    os.system(f"ffmpeg -i {filename} {new_filename}");
     os.remove(filename)
 
 
