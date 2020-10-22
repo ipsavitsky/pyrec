@@ -1,6 +1,6 @@
 import pyaudio
 import wave
-import pydub
+import ffmpeg
 import os
 import serial
 import serial.tools.list_ports
@@ -130,7 +130,7 @@ def record_to_file(employee_id, conf):
         filename = f"{employee_id}-{channel_list[i]}-{time}.wav"
         #if a == b'10':
         #    filename = f"{employee_id}-1-{time}.wav"
- 	#elif a == b'01':
+ 	    #elif a == b'01':
         #    filename = f"{employee_id}-2-{time}.wav"
         file_list.append(filename)
         wf = wave.open(filename, 'wb')
@@ -146,10 +146,16 @@ def record_to_file(employee_id, conf):
 def wav_2_mp3_convert(filename):
     # sound = pydub.AudioSegment.from_wav(filename)
     # sound.export(filename.split(".")[0] + ".mp3", format="mp3")
-    #здесь не самое элегантное решение, но я это починю в скором времени
-
     new_filename = filename.split(".")[0] + ".mp3"
-    os.system(f"ffmpeg -i {filename} {new_filename}");
+    (
+        ffmpeg
+        .input(filename)
+        .output(new_filename)
+        .global_args('-loglevel', 'error')
+        .run()
+    )
+    # ffmpeg.run(stream)
+    # os.system(f"ffmpeg -i {filename} {new_filename}")
     os.remove(filename)
 
 
@@ -171,14 +177,14 @@ if __name__ == '__main__':
     # print("Please speak word(s) into the microphone")
     # print('Press Ctrl+C to stop the recording')
     # employee_id = 1111
-
-    filename_list = record_to_file(employee_id, config)
-    for filename in filename_list:
-        print("Result written to " + filename)
-        wav_2_mp3_convert(filename)
-        filename = filename.split(".")[0] + ".mp3"
-        print("Converted to " + filename)
-        upload_ftp(filename, config)
-        print('file sent to ' + config['FTP']
-              ['HOST'] + config['FTP']['DIRECTORY'])
-    print('#' * 80)
+    while True:
+        filename_list = record_to_file(employee_id, config)
+        for filename in filename_list:
+            print("Result written to " + filename)
+            filename = wav_2_mp3_convert(filename)
+            # filename = filename.split(".")[0] + ".mp3"
+            print("Converted to " + filename)
+            upload_ftp(filename, config)
+            print('file sent to ' + config['FTP']
+                ['HOST'] + config['FTP']['DIRECTORY'])
+        print('#' * 80)
